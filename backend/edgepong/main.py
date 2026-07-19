@@ -89,6 +89,13 @@ class Application:
             self.mock_paddle.start()
         self.game.start()
         log.info("edge pong services started (mode=%s)", self.cfg.system.hardware_mode)
+        if self.cfg.fusion.imu_only:
+            log.info("POSE SOURCE: real paddle IMU (orientation live, position fixed) "
+                     "- press C in the browser to recenter 'flat'")
+        else:
+            log.info("POSE SOURCE: sim ground truth + mock camera (the on-screen "
+                     "paddle floats/auto-plays; the real IMU only nudges it). "
+                     "Set EDGEPONG_HARDWARE_MODE=hardware to let the paddle drive it.")
 
     def stop_services(self) -> None:
         self.game.stop()

@@ -23,6 +23,7 @@ from ..mathutil import (
     Quat,
     Vec3,
     clamp,
+    quat_conjugate,
     quat_from_gyro,
     quat_mul,
     quat_normalize,
@@ -47,6 +48,9 @@ class PoseFusion:
         self._f = fusion_cfg
         self._p = paddle_cfg
         self._imu_only = fusion_cfg.imu_only
+        # imu-only: the first still orientation becomes "neutral" so however you
+        # hold the paddle at startup reads as a flat, forward-facing blade.
+        self._imu_ref: Quat | None = None
         self._position = vec3(0.0, 1.2, 1.8)
         self._orientation = quat_normalize(np.array([1.0, 0.0, 0.0, 0.0]))
         self._imu_orientation = self._orientation.copy()
@@ -119,7 +123,9 @@ class PoseFusion:
             # No camera to correct against: the IMU IS the tracker. Take its
             # orientation directly (responsive) and hold a steady tracked state
             # so gameplay runs. Position stays at the fixed home point.
-            self._orientation = q
+            if self._imu_ref is None:
+                self._imu_ref = quat_conjugate(q)  # capture neutral pose
+            self._orientation = quat_normalize(quat_mul(self._imu_ref, q))
             self._last_camera_us = now
             self._confidence = 0.9
             return
@@ -127,6 +133,10 @@ class PoseFusion:
         # IMU provides fast orientation; camera corrects it in on_camera().
         w = self._f.imu_orientation_weight
         self._orientation = quat_slerp(self._orientation, q, w * 0.15)
+
+    def recenter(self) -> None:
+        """Re-capture the current paddle pose as neutral (imu-only mode)."""
+        self._imu_ref = None
 
     # ------------------------------------------------------------------ #
     def step(self, now: int | None = None) -> PaddlePose:

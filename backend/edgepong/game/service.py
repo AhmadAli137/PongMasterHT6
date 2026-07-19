@@ -133,6 +133,9 @@ class GameService:
             if self._sim_model is not None:
                 self._sim_model.balance_mode = self.balance_mode
             log.info("balance mode %s", "ON" if self.balance_mode else "OFF")
+        elif cmd == "RECENTER":
+            self._fusion.recenter()
+            log.info("paddle orientation recentered")
         else:
             self._sm.request(cmd)
         # RESET always wipes; START_SESSION only when it was actually accepted —

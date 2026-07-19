@@ -98,6 +98,8 @@ export class App {
       if (e.key === "r" || e.key === "R") this.net.send("RESET");
       if (e.key === "m" || e.key === "M") this.audio.setMuted(!this.audio.muted);
       if (e.key === "b" || e.key === "B") this.net.send("BALANCE_MODE");
+      // C = recenter: make the paddle's current pose the new "flat" neutral
+      if (e.key === "c" || e.key === "C") this.net.send("RECENTER");
     });
 
     // -- mouse paddle control (sim mode) --------------------------------- //

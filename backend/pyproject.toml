@@ -1,0 +1,35 @@
+[project]
+name = "edgepong"
+version = "0.1.0"
+description = "Edge Pong — projected arcade ping-pong edge-AI backend"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.111",
+    "uvicorn[standard]>=0.30",
+    "pyyaml>=6.0",
+    "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+# Hardware extras — only needed on the real UNO Q, not for the simulation slice.
+hardware = [
+    "opencv-python>=4.9",
+    "pupil-apriltags>=1.0",
+]
+
+[project.scripts]
+edgepong = "edgepong.main:run"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["edgepong*"]
+
+[tool.pytest.ini_options]
+testpaths = ["edgepong/tests"]

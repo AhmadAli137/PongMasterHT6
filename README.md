@@ -13,6 +13,16 @@ fast one can't slip through the paddle.
 Connect, and the ball rebounds off the angle of your paddle: tilt the face to
 aim your return. Land it on the far side to score. Miss, and the rally's over.
 
+## Run it
+
+Open the folder in VS Code and press `Ctrl+Shift+B` (or Terminal → Run Task),
+then pick one:
+
+- **Play: Build + Serve** — builds everything, starts the game, opens your browser
+- **Dev: Backend + Frontend** — both with hot reload while you tinker
+- **Backend: Tests** — run the test suite
+- **Fix: Kill stale backend** — frees the ports if a server gets stuck
+
 ## Controls (mouse mode)
 
 No paddle yet? Play with the mouse — it drives a stand-in paddle through the

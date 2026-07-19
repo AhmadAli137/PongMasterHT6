@@ -75,6 +75,10 @@ class FusionConfig:
     # No camera wired? Let the paddle's IMU drive orientation directly and hold
     # a steady "tracked" state, so real paddle rotation shows up on screen.
     imu_only: bool = False
+    # Axis remap for however the IMU is glued on. Each entry says which sensor
+    # axis (optionally negated) maps to game x,y,z. "x,y,z" = no change; e.g.
+    # "-x,-y,z" flips left/right + up/down; "y,x,z" swaps them.
+    imu_axes: str = "x,y,z"
 
 
 @dataclass
@@ -196,6 +200,7 @@ def _apply_env_overrides(cfg: Config) -> Config:
     cfg.fusion.imu_only = as_bool(
         "EDGEPONG_IMU_ONLY", cfg.system.hardware_mode == "hardware"
     )
+    cfg.fusion.imu_axes = as_str("EDGEPONG_IMU_AXES", cfg.fusion.imu_axes)
     return cfg
 
 

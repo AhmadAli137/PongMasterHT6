@@ -53,7 +53,8 @@
         "cwd": "${workspaceFolder}/backend",
         "env": {
           "EDGEPONG_HARDWARE_MODE": "hardware",
-          "EDGEPONG_COMMAND_HOST": "auto"
+          "EDGEPONG_COMMAND_HOST": "auto",
+          "EDGEPONG_IMU_AXES": "-x,y,-z"
         }
       },
       "isBackground": true,

@@ -43,6 +43,25 @@ _MAX_JUMP_M = 0.6           # per-camera-update position jump
 _MAX_REPROJ_PX = 3.5
 
 
+def _parse_axis_remap(spec: str) -> tuple[np.ndarray, float]:
+    """Turn an "x,-y,z"-style spec into a signed-permutation matrix P (game_vec
+    = P @ imu_vec) plus its determinant. Falls back to identity on bad input."""
+    idx = {"x": 0, "y": 1, "z": 2}
+    P = np.zeros((3, 3))
+    try:
+        parts = [p.strip().lower() for p in spec.split(",")]
+        if len(parts) != 3:
+            raise ValueError(spec)
+        for i, p in enumerate(parts):
+            sign = -1.0 if p.startswith(("-", "+")) and p[0] == "-" else 1.0
+            P[i, idx[p[-1]]] = sign
+        if not np.allclose(np.abs(P).sum(axis=0), 1.0):  # each source used once
+            raise ValueError(spec)
+    except (KeyError, ValueError, IndexError):
+        P = np.eye(3)
+    return P, float(np.linalg.det(P))
+
+
 class PoseFusion:
     def __init__(self, fusion_cfg: FusionConfig, paddle_cfg: PaddleConfig):
         self._f = fusion_cfg
@@ -51,6 +70,8 @@ class PoseFusion:
         # imu-only: the first still orientation becomes "neutral" so however you
         # hold the paddle at startup reads as a flat, forward-facing blade.
         self._imu_ref: Quat | None = None
+        # axis remap for the sensor's mounting (see FusionConfig.imu_axes)
+        self._axis_P, self._axis_det = _parse_axis_remap(fusion_cfg.imu_axes)
         self._position = vec3(0.0, 1.2, 1.8)
         self._orientation = quat_normalize(np.array([1.0, 0.0, 0.0, 0.0]))
         self._imu_orientation = self._orientation.copy()
@@ -114,8 +135,14 @@ class PoseFusion:
         q = quat_normalize(
             np.array([tel.quat_w, tel.quat_x, tel.quat_y, tel.quat_z], dtype=np.float64)
         )
+        gyro = vec3(tel.gyro_x, tel.gyro_y, tel.gyro_z)
+        # remap for the sensor's mounting: rotate the quaternion's axis (and the
+        # gyro pseudovector) into the game frame. det factor handles mirrored maps.
+        vec_g = self._axis_det * (self._axis_P @ q[1:])
+        q = quat_normalize(np.array([q[0], vec_g[0], vec_g[1], vec_g[2]]))
+        gyro = self._axis_det * (self._axis_P @ gyro)
         self._imu_orientation = q
-        self._angular_velocity = vec3(tel.gyro_x, tel.gyro_y, tel.gyro_z)
+        self._angular_velocity = gyro
         now = now_us()
         self._last_imu_us = now
 

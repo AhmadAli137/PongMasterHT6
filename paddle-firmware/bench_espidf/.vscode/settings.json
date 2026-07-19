@@ -1,0 +1,14 @@
+{
+  "idf.currentSetup": "C:\\esp\\v6.0.1\\esp-idf",
+  "idf.portWin": "COM12",
+  "idf.customExtraVars": {
+    "IDF_TARGET": "esp32c5"
+  },
+  "clangd.path": "C:\\Espressif\\tools\\esp-clang\\esp-20.1.1_20250829\\esp-clang\\bin\\clangd.exe",
+  "clangd.arguments": [
+    "--background-index",
+    "--query-driver=**",
+    "--compile-commands-dir=c:\\Users\\Ahmad\\OneDrive\\Desktop\\PongMaster\\paddle-firmware\\bench_espidf\\build"
+  ],
+  "idf.flashType": "UART"
+}

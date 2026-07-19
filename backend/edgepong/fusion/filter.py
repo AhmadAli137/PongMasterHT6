@@ -113,8 +113,10 @@ class PoseFusion:
         self._last_camera_pos = pos
         self._last_camera_time = obs.capture_time_us
 
-        # blend fused position toward camera position
-        a = self._f.camera_position_alpha
+        # blend fused position toward camera position. When the IMU owns
+        # orientation, the camera is the *only* position source, so trust it
+        # harder for a snappier follow on fast swings.
+        a = 0.85 if self._imu_only else self._f.camera_position_alpha
         self._position = (1.0 - a) * self._position + a * pos
 
         # slowly correct IMU orientation drift toward camera orientation — unless

@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any, Deque
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from ..config import Config
@@ -53,10 +53,11 @@ def _impact_to_json(impact: ImpactEvent) -> dict[str, Any]:
 
 
 class WebServer:
-    def __init__(self, cfg: Config, game, metrics_provider):
+    def __init__(self, cfg: Config, game, metrics_provider, camera_jpeg=None):
         self._cfg = cfg
         self._game = game
         self._metrics_provider = metrics_provider
+        self._camera_jpeg = camera_jpeg  # () -> bytes | None (annotated webcam)
         self.app = FastAPI(title="Edge Pong")
         self._clients: set[WebSocket] = set()
         self._impact_queue: Deque[dict[str, Any]] = collections.deque(maxlen=128)
@@ -88,7 +89,25 @@ class WebServer:
                     "status": "ok",
                     "gameState": self._game.state.value,
                     "mode": self._cfg.system.hardware_mode,
+                    "camera": self._camera_jpeg is not None,
                 }
+            )
+
+        @app.get("/api/camera")
+        async def camera():
+            if self._camera_jpeg is None:
+                return JSONResponse({"error": "no camera"}, status_code=404)
+
+            async def frames():
+                while True:
+                    jpeg = self._camera_jpeg()
+                    if jpeg:
+                        yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n"
+                               + jpeg + b"\r\n")
+                    await asyncio.sleep(1.0 / 25)
+
+            return StreamingResponse(
+                frames(), media_type="multipart/x-mixed-replace; boundary=frame"
             )
 
         @app.get("/api/metrics")

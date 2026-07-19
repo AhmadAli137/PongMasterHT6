@@ -42,6 +42,7 @@ class Application:
         self.sim_model: SimPaddleModel | None = None
         self.mock_paddle: MockPaddle | None = None
         self.detector: MockTagDetector | None = None
+        self._camera_jpeg = None  # set when MediaPipe provides an annotated feed
 
         if cfg.system.hardware_mode == "sim":
             self.sim_model = SimPaddleModel(cfg.game, cfg.paddle)
@@ -54,6 +55,7 @@ class Application:
         if cfg.camera.mediapipe_enabled:
             from .camera.mediapipe_pose import MediaPipeHandSource
             self.detector = MediaPipeHandSource(cfg.camera)
+            self._camera_jpeg = self.detector.latest_jpeg
             self.fusion.set_camera_active(True)
             log.info("MediaPipe hand tracking ON (camera %d) - position from webcam",
                      cfg.camera.mp_camera_index)
@@ -82,7 +84,7 @@ class Application:
             camera_fps=self.detector.camera_fps if self.detector else None,
             tag_fps=self.detector.tag_fps if self.detector else None,
         )
-        self.web = WebServer(cfg, self.game, self.metrics.collect)
+        self.web = WebServer(cfg, self.game, self.metrics.collect, camera_jpeg=self._camera_jpeg)
 
     def _on_impact(self, impact: ImpactEvent) -> None:
         # authoritative haptic path (never routed through the browser)

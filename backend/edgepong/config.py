@@ -51,7 +51,7 @@ class CameraConfig:
     mp_y_span: float = 1.0       # hand top→bottom -> this vertical range
     mp_y_base: float = 1.15      # paddle rest height (frame centre maps here)
     mp_z_plane: float = 1.8      # fixed depth (the paddle plane) in 2D mode
-    mp_smoothing: float = 0.4    # 0=raw, →1=heavily smoothed EMA
+    mp_smoothing: float = 0.2    # 0=raw, →1=heavily smoothed EMA (low = snappy)
 
 
 @dataclass

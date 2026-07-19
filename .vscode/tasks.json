@@ -26,6 +26,16 @@
       "problemMatcher": []
     },
     {
+      "label": "Calibrate: IMU axes",
+      "detail": "Measures your paddle's pitch/yaw/roll and prints the EDGEPONG_IMU_AXES value to paste into the hardware task. Stop the backend first (this needs the telemetry port).",
+      "type": "shell",
+      "command": "python",
+      "args": ["scripts/calibrate_imu_axes.py"],
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "presentation": { "panel": "dedicated", "reveal": "always", "clear": true },
+      "problemMatcher": []
+    },
+    {
       "label": "Fix: Kill stale backend (frees UDP 46000 / HTTP 8080)",
       "detail": "Run this if a launch fails to bind, or metrics show paddleConnected=false after a restart",
       "type": "shell",

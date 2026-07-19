@@ -33,6 +33,36 @@ _MODEL_URL = (
     "hand_landmarker/float16/1/hand_landmarker.task"
 )
 
+# MediaPipe hand topology (21 landmarks) for drawing the skeleton.
+_HAND_CONNECTIONS = (
+    (0, 1), (1, 2), (2, 3), (3, 4),            # thumb
+    (0, 5), (5, 6), (6, 7), (7, 8),            # index
+    (5, 9), (9, 10), (10, 11), (11, 12),       # middle
+    (9, 13), (13, 14), (14, 15), (15, 16),     # ring
+    (13, 17), (17, 18), (18, 19), (19, 20),    # pinky
+    (0, 17),                                    # palm base
+)
+_FINGERS = {"index": (8, 6), "middle": (12, 10), "ring": (16, 14), "pinky": (20, 18)}
+
+
+def _classify_gesture(lm) -> str:
+    """Cheap hand-shape label from landmark geometry (fun overlay, not exact)."""
+    import math
+
+    def d(a, b):
+        return math.hypot(lm[a].x - lm[b].x, lm[a].y - lm[b].y)
+
+    palm = max(1e-6, d(0, 9))  # wrist → middle-finger base, a scale reference
+    # pinch: thumb tip near index tip
+    if d(4, 8) < 0.35 * palm:
+        return "Pinch"
+    extended = sum(1 for tip, pip in _FINGERS.values() if d(tip, 0) > d(pip, 0) * 1.15)
+    thumb_out = d(4, 0) > d(3, 0) * 1.1
+    total = extended + (1 if thumb_out else 0)
+    return {0: "Fist", 1: "Point", 2: "Two", 3: "Three", 4: "Four", 5: "Open"}.get(
+        total, f"{total} fingers"
+    )
+
 
 def _ensure_model() -> str:
     """Return the HandLandmarker model path, downloading it once if missing."""
@@ -52,6 +82,7 @@ class MediaPipeHandSource:
         self._seq = 0
         self._last_polled = -1
         self._smooth: np.ndarray | None = None
+        self._jpeg: bytes | None = None  # latest annotated frame for the UI
         self._thread: threading.Thread | None = None
         self._running = False
         # rolling fps counters (read by the metrics aggregator)
@@ -127,6 +158,7 @@ class MediaPipeHandSource:
         cap = cv2.VideoCapture(self._cfg.mp_camera_index)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # keep only the newest frame (low lag)
         last_ts = -1
         try:
             while self._running:
@@ -141,11 +173,13 @@ class MediaPipeHandSource:
                 ts_ms = max(last_ts + 1, t // 1000)  # must strictly increase
                 last_ts = ts_ms
                 res = landmarker.detect_for_video(image, ts_ms)
+                gesture = ""
                 if res.hand_landmarks:
                     wrist = res.hand_landmarks[0][0]  # landmark 0 = wrist
                     score = 0.9
                     if res.handedness:
                         score = float(res.handedness[0][0].score)
+                    gesture = _classify_gesture(res.hand_landmarks[0])
                     pos = self._map(wrist.x, wrist.y)
                     self._detections += 1
                     self._publish(TagObservation(
@@ -172,9 +206,37 @@ class MediaPipeHandSource:
                         confidence=0.0,
                         valid=False,
                     ))
+                self._render_preview(cv2, frame, res, gesture)
         finally:
             landmarker.close()
             cap.release()
+
+    def _render_preview(self, cv2, frame, res, gesture: str) -> None:
+        """Draw the mirrored webcam + hand skeleton + label, and JPEG-encode it."""
+        h, w = frame.shape[:2]
+        view = cv2.flip(frame, 1)  # mirror so it reads like a selfie
+        if res.hand_landmarks:
+            lm = res.hand_landmarks[0]
+            pts = [(w - int(p.x * w), int(p.y * h)) for p in lm]  # x flipped to match
+            for a, b in _HAND_CONNECTIONS:
+                cv2.line(view, pts[a], pts[b], (0, 230, 0), 2)
+            for p in pts:
+                cv2.circle(view, p, 4, (0, 160, 255), -1)
+            cv2.circle(view, pts[0], 9, (255, 90, 90), 2)  # tracked wrist point
+            label = f"{gesture}" if gesture else "hand"
+            cv2.putText(view, label, (12, 30), cv2.FONT_HERSHEY_SIMPLEX,
+                        0.8, (255, 255, 255), 2, cv2.LINE_AA)
+        else:
+            cv2.putText(view, "no hand", (12, 30), cv2.FONT_HERSHEY_SIMPLEX,
+                        0.8, (120, 120, 120), 2, cv2.LINE_AA)
+        ok, buf = cv2.imencode(".jpg", view, [cv2.IMWRITE_JPEG_QUALITY, 70])
+        if ok:
+            with self._lock:
+                self._jpeg = buf.tobytes()
+
+    def latest_jpeg(self) -> bytes | None:
+        with self._lock:
+            return self._jpeg
 
     def _update_fps(self, t: int) -> None:
         elapsed = (t - self._fps_mark_us) / 1e6

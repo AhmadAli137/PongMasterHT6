@@ -34,6 +34,9 @@ export class App {
 
   private latest: StateMsg | null = null;
   private lastState = "";
+  private cameraWrap: HTMLDivElement | null = null;
+  private cameraImg: HTMLImageElement | null = null;
+  private cameraOn = false;
   // damped-follow targets: interpolator output is low-passed before display
   private targetPos = new THREE.Vector3(0, 1.2, 1.8);
   private targetQuat = new THREE.Quaternion();
@@ -61,10 +64,45 @@ export class App {
     this.effects = new Effects(this.scene);
     this.hud = new Hud(container);
 
+    this.setupCameraPreview(container);
     this.wireNetwork();
     this.wireInput();
     window.addEventListener("resize", () => this.onResize());
     this.pollMetrics();
+  }
+
+  /** Floating panel showing the backend's annotated webcam (hand skeleton +
+   *  gesture label). Auto-shows when a camera is present; toggle with V. */
+  private setupCameraPreview(container: HTMLElement): void {
+    const wrap = document.createElement("div");
+    wrap.style.cssText =
+      "position:fixed;left:16px;bottom:16px;width:320px;border-radius:10px;" +
+      "overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.5);display:none;" +
+      "z-index:20;background:#000;border:1px solid rgba(255,255,255,.15)";
+    const img = document.createElement("img");
+    img.style.cssText = "display:block;width:100%;height:auto";
+    img.alt = "webcam hand tracking";
+    const cap = document.createElement("div");
+    cap.textContent = "Webcam · hand tracking  (V to hide)";
+    cap.style.cssText =
+      "font:12px system-ui,sans-serif;color:#bfe;padding:4px 8px;background:rgba(0,0,0,.55)";
+    wrap.appendChild(img);
+    wrap.appendChild(cap);
+    container.appendChild(wrap);
+    this.cameraWrap = wrap;
+    this.cameraImg = img;
+    fetch("/api/health")
+      .then((r) => r.json())
+      .then((h) => { if (h.camera) this.toggleCamera(true); })
+      .catch(() => { /* offline; ignore */ });
+  }
+
+  private toggleCamera(on?: boolean): void {
+    if (!this.cameraWrap || !this.cameraImg) return;
+    this.cameraOn = on ?? !this.cameraOn;
+    this.cameraWrap.style.display = this.cameraOn ? "block" : "none";
+    // setting src (re)starts the MJPEG stream; clearing it stops the fetch
+    this.cameraImg.src = this.cameraOn ? `/api/camera?t=${Date.now()}` : "";
   }
 
   private wireNetwork(): void {
@@ -100,6 +138,8 @@ export class App {
       if (e.key === "b" || e.key === "B") this.net.send("BALANCE_MODE");
       // C = recenter: make the paddle's current pose the new "flat" neutral
       if (e.key === "c" || e.key === "C") this.net.send("RECENTER");
+      // V = show/hide the webcam hand-tracking preview
+      if (e.key === "v" || e.key === "V") this.toggleCamera();
     });
 
     // -- mouse paddle control (sim mode) --------------------------------- //

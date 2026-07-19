@@ -1,0 +1,39 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---- Node / frontend ----
+node_modules/
+frontend/dist/
+# tsc is typecheck-only (noEmit); never commit emitted JS next to sources
+frontend/src/**/*.js
+*.local
+.vite/
+
+# ---- Config / secrets / calibration output ----
+.env
+config/camera_calibration.yaml
+
+# ---- OS / editor ----
+.DS_Store
+Thumbs.db
+.idea/
+# keep shared VS Code config (tasks/launch/extensions); ignore personal settings
+.vscode/*
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# ---- Logs / recordings ----
+*.log
+recordings/

@@ -37,3 +37,6 @@ Thumbs.db
 # ---- Logs / recordings ----
 *.log
 recordings/
+
+# ---- MediaPipe model (auto-downloaded on first run) ----
+*.task

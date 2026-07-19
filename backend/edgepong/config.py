@@ -40,6 +40,18 @@ class CameraConfig:
     sim_jitter_m: float = 0.0015
     sim_latency_ms: float = 20.0
     sim_dropout_prob: float = 0.004
+    # MediaPipe hand tracking → paddle position (fills the camera slot with a
+    # webcam instead of AprilTags). Maps the wrist landmark into game space;
+    # depth is held fixed for the 2D-first build. Signs/spans are tunable so
+    # you can flip left/right or scale reach without touching code.
+    mediapipe_enabled: bool = False
+    mp_camera_index: int = 0
+    mp_x_span: float = 1.4       # hand across frame -> ± this many metres in x
+    mp_x_sign: float = 1.0       # set to -1 to mirror left/right
+    mp_y_span: float = 1.0       # hand top→bottom -> this vertical range
+    mp_y_base: float = 1.15      # paddle rest height (frame centre maps here)
+    mp_z_plane: float = 1.8      # fixed depth (the paddle plane) in 2D mode
+    mp_smoothing: float = 0.4    # 0=raw, →1=heavily smoothed EMA
 
 
 @dataclass
@@ -201,6 +213,9 @@ def _apply_env_overrides(cfg: Config) -> Config:
         "EDGEPONG_IMU_ONLY", cfg.system.hardware_mode == "hardware"
     )
     cfg.fusion.imu_axes = as_str("EDGEPONG_IMU_AXES", cfg.fusion.imu_axes)
+    cfg.camera.mediapipe_enabled = as_bool("EDGEPONG_MEDIAPIPE", cfg.camera.mediapipe_enabled)
+    cfg.camera.mp_camera_index = as_int("EDGEPONG_MP_CAMERA", cfg.camera.mp_camera_index)
+    cfg.camera.mp_x_sign = float(as_str("EDGEPONG_MP_X_SIGN", str(cfg.camera.mp_x_sign)))
     return cfg
 
 

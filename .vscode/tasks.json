@@ -18,6 +18,14 @@
       "problemMatcher": []
     },
     {
+      "label": "Play with REAL paddle (IMU + webcam position): Build + Serve",
+      "detail": "Full 6-DOF: the IMU drives orientation and the webcam (MediaPipe hand tracking) drives position. Needs 'pip install mediapipe' and a webcam. Hold still ~2 s to zero the gyro; press C to recenter. If left/right is mirrored, set EDGEPONG_MP_X_SIGN=-1.",
+      "dependsOrder": "sequence",
+      "dependsOn": ["Frontend: Build", "IMU + webcam: Serve + open browser"],
+      "group": { "kind": "build" },
+      "problemMatcher": []
+    },
+    {
       "label": "Fix: Kill stale backend (frees UDP 46000 / HTTP 8080)",
       "detail": "Run this if a launch fails to bind, or metrics show paddleConnected=false after a restart",
       "type": "shell",
@@ -38,6 +46,12 @@
       "problemMatcher": []
     },
     {
+      "label": "IMU + webcam: Serve + open browser",
+      "detail": "helper — runs hardware mode with MediaPipe position, then opens the browser",
+      "dependsOn": ["Backend: Run (IMU + webcam position)", "Browser: Open when server is ready"],
+      "problemMatcher": []
+    },
+    {
       "label": "Mouse: Serve + open browser",
       "detail": "helper — runs the sim backend, then opens the browser",
       "dependsOn": ["Backend: Run (sim)", "Browser: Open when server is ready"],
@@ -55,6 +69,26 @@
           "EDGEPONG_HARDWARE_MODE": "hardware",
           "EDGEPONG_COMMAND_HOST": "auto",
           "EDGEPONG_IMU_AXES": "-x,y,-z"
+        }
+      },
+      "isBackground": true,
+      "presentation": { "panel": "dedicated", "reveal": "always" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend: Run (IMU + webcam position)",
+      "detail": "helper — hardware mode + MediaPipe: IMU drives orientation, webcam hand tracking drives position. Set EDGEPONG_MP_X_SIGN=-1 here if left/right is mirrored.",
+      "type": "shell",
+      "command": "python",
+      "args": ["-m", "edgepong.main"],
+      "options": {
+        "cwd": "${workspaceFolder}/backend",
+        "env": {
+          "EDGEPONG_HARDWARE_MODE": "hardware",
+          "EDGEPONG_COMMAND_HOST": "auto",
+          "EDGEPONG_IMU_AXES": "-x,y,-z",
+          "EDGEPONG_MEDIAPIPE": "1",
+          "EDGEPONG_MP_CAMERA": "0"
         }
       },
       "isBackground": true,

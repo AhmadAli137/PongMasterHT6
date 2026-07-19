@@ -49,6 +49,15 @@ class Application:
             if cfg.paddle.sim_enabled:
                 self.mock_paddle = MockPaddle(cfg.paddle, self.sim_model, cfg.paddle.telemetry_port)
 
+        # MediaPipe webcam hand tracking fills the position slot (the IMU still
+        # owns orientation). Overrides the mock detector if both are on.
+        if cfg.camera.mediapipe_enabled:
+            from .camera.mediapipe_pose import MediaPipeHandSource
+            self.detector = MediaPipeHandSource(cfg.camera)
+            self.fusion.set_camera_active(True)
+            log.info("MediaPipe hand tracking ON (camera %d) - position from webcam",
+                     cfg.camera.mp_camera_index)
+
         # haptic dispatcher sends commands out over the gateway's UDP socket
         self.haptics = HapticDispatcher(cfg.haptics, self.gateway.send_command)
 
@@ -89,7 +98,10 @@ class Application:
             self.mock_paddle.start()
         self.game.start()
         log.info("edge pong services started (mode=%s)", self.cfg.system.hardware_mode)
-        if self.cfg.fusion.imu_only:
+        if self.cfg.fusion.imu_only and self.cfg.camera.mediapipe_enabled:
+            log.info("POSE SOURCE: IMU orientation + MediaPipe webcam position "
+                     "- press C in the browser to recenter 'flat'")
+        elif self.cfg.fusion.imu_only:
             log.info("POSE SOURCE: real paddle IMU (orientation live, position fixed) "
                      "- press C in the browser to recenter 'flat'")
         else:

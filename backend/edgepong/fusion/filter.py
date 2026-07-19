@@ -72,6 +72,9 @@ class PoseFusion:
         self._imu_ref: Quat | None = None
         # axis remap for the sensor's mounting (see FusionConfig.imu_axes)
         self._axis_P, self._axis_det = _parse_axis_remap(fusion_cfg.imu_axes)
+        # True when a real position source (e.g. MediaPipe) is feeding on_camera;
+        # then imu-only stops faking position and lets the camera drive it.
+        self._camera_active = False
         self._position = vec3(0.0, 1.2, 1.8)
         self._orientation = quat_normalize(np.array([1.0, 0.0, 0.0, 0.0]))
         self._imu_orientation = self._orientation.copy()
@@ -114,11 +117,14 @@ class PoseFusion:
         a = self._f.camera_position_alpha
         self._position = (1.0 - a) * self._position + a * pos
 
-        # slowly correct IMU orientation drift toward camera orientation
-        cam_q = quat_normalize(np.asarray(obs.orientation_camera_quat, dtype=np.float64))
-        self._orientation = quat_slerp(
-            self._orientation, cam_q, self._f.camera_orientation_alpha
-        )
+        # slowly correct IMU orientation drift toward camera orientation — unless
+        # the IMU owns orientation outright (imu-only + a position-only camera
+        # like MediaPipe, which sends no meaningful orientation).
+        if not self._imu_only:
+            cam_q = quat_normalize(np.asarray(obs.orientation_camera_quat, dtype=np.float64))
+            self._orientation = quat_slerp(
+                self._orientation, cam_q, self._f.camera_orientation_alpha
+            )
         self._last_camera_us = obs.processed_time_us
         # boost confidence toward the observation confidence
         self._confidence = clamp(0.4 * self._confidence + 0.6 * obs.confidence, 0.0, 1.0)
@@ -147,14 +153,16 @@ class PoseFusion:
         self._last_imu_us = now
 
         if self._imu_only:
-            # No camera to correct against: the IMU IS the tracker. Take its
-            # orientation directly (responsive) and hold a steady tracked state
-            # so gameplay runs. Position stays at the fixed home point.
+            # The IMU is the orientation source. Take it directly (responsive).
             if self._imu_ref is None:
                 self._imu_ref = quat_conjugate(q)  # capture neutral pose
             self._orientation = quat_normalize(quat_mul(self._imu_ref, q))
-            self._last_camera_us = now
-            self._confidence = 0.9
+            if not self._camera_active:
+                # No position source: hold a steady tracked state and a fixed
+                # position so gameplay still runs on orientation alone.
+                self._last_camera_us = now
+                self._confidence = 0.9
+            # else: MediaPipe/AprilTag drives position + tracking via on_camera.
             return
 
         # IMU provides fast orientation; camera corrects it in on_camera().
@@ -164,6 +172,10 @@ class PoseFusion:
     def recenter(self) -> None:
         """Re-capture the current paddle pose as neutral (imu-only mode)."""
         self._imu_ref = None
+
+    def set_camera_active(self, active: bool) -> None:
+        """Tell the filter a real position source is live (MediaPipe/AprilTag)."""
+        self._camera_active = active
 
     # ------------------------------------------------------------------ #
     def step(self, now: int | None = None) -> PaddlePose:

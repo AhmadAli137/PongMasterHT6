@@ -23,6 +23,14 @@ then pick one:
 - **Backend: Tests** — run the test suite
 - **Fix: Kill stale backend** — frees the ports if a server gets stuck
 
+Prefer a terminal? The game is served from a compiled bundle that isn't
+checked in, so build the frontend once before starting the backend:
+
+```bash
+cd frontend && npm install && npm run build   # rebuild after any frontend change
+cd ../backend && python -m edgepong.main       # serves the game at http://localhost:8080
+```
+
 ## Controls (mouse mode)
 
 No paddle yet? Play with the mouse — it drives a stand-in paddle through the

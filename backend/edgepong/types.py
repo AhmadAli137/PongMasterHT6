@@ -65,6 +65,7 @@ class Ball:
     target_zone: Vec3
     state: BallLifecycle = BallLifecycle.APPROACHING
     prev_position: Vec3 | None = None
+    spin: Vec3 = field(default_factory=lambda: np.zeros(3))  # rad/s, drives Magnus curve
     # rally bookkeeping
     last_hit_by: str = "OPPONENT"          # "OPPONENT" | "PLAYER"
     bounces_player: int = 0                # tabletop bounces on the player half

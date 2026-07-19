@@ -23,6 +23,7 @@ from ..types import Ball, HitQuality
 
 GRAVITY = np.array([0.0, -6.0, 0.0])  # softened gravity: playable arcs, real feel
 TABLE_FRICTION = 0.96                  # horizontal speed kept per tabletop bounce
+MAGNUS_K = 0.045                       # spin -> sideways curve strength (tuned by eye)
 
 
 def net_z(cfg: GameConfig) -> float:
@@ -34,9 +35,14 @@ def net_top(cfg: GameConfig) -> float:
 
 
 def integrate_ball(ball: Ball, dt: float) -> None:
-    """Semi-implicit Euler step; stores prev position for sweeps/crossings."""
+    """Semi-implicit Euler step with a Magnus (spin) curve; stores prev pos."""
     ball.prev_position = ball.position.copy()
-    ball.velocity = ball.velocity + GRAVITY * dt
+    accel = GRAVITY
+    spin = ball.spin
+    if spin is not None and float(np.dot(spin, spin)) > 1e-9:
+        # Magnus force curves the flight sideways: F ∝ spin × velocity
+        accel = GRAVITY + MAGNUS_K * np.cross(spin, ball.velocity)
+    ball.velocity = ball.velocity + accel * dt
     ball.position = ball.position + ball.velocity * dt
 
 

@@ -575,6 +575,17 @@ class GameService:
         ball.prev_position = ball.position.copy()
         ball.velocity = outgoing
 
+        # Spin: the paddle brushing tangentially across the ball imparts spin,
+        # which the physics step turns into a curving (Magnus) flight path.
+        n = collider.normal
+        cv = contact.contact_velocity
+        tangential = cv - n * float(np.dot(cv, n))
+        spin = np.cross(n, tangential) * 2.6
+        sp = float(np.linalg.norm(spin))
+        if sp > 12.0:
+            spin = spin * (12.0 / sp)
+        ball.spin = spin
+
         # stance-based when the player is driving with the mouse; otherwise the
         # crude contact-side heuristic (hardware mode has no stance signal yet)
         if self._sim_model is not None and self._sim_model.external_active:
@@ -615,6 +626,7 @@ class GameService:
                     "id": b.id,
                     "position": [float(b.position[0]), float(b.position[1]), float(b.position[2])],
                     "velocity": [float(b.velocity[0]), float(b.velocity[1]), float(b.velocity[2])],
+                    "spin": [float(b.spin[0]), float(b.spin[1]), float(b.spin[2])],
                     "radius": b.radius,
                     "type": b.type.value,
                     "state": b.state.value,

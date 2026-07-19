@@ -11,6 +11,7 @@ export interface BallMsg {
   id: number;
   position: Vec3;
   velocity: Vec3;
+  spin?: Vec3; // rad/s; drives the curved predicted-trajectory line
   radius: number;
   type: BallType;
   state: string;

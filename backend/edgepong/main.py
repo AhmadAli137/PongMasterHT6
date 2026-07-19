@@ -57,8 +57,9 @@ class Application:
             self.detector = MediaPipeHandSource(cfg.camera)
             self._camera_jpeg = self.detector.latest_jpeg
             self.fusion.set_camera_active(True)
-            log.info("MediaPipe hand tracking ON (camera %d) - position from webcam",
-                     cfg.camera.mp_camera_index)
+            extra = "body + reach depth" if cfg.camera.mp_mode == "pose" else "hand (2D)"
+            log.info("MediaPipe %s tracking ON (camera %d) - position from webcam",
+                     extra, cfg.camera.mp_camera_index)
 
         # haptic dispatcher sends commands out over the gateway's UDP socket
         self.haptics = HapticDispatcher(cfg.haptics, self.gateway.send_command)

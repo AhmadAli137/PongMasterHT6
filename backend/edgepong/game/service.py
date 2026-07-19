@@ -136,6 +136,9 @@ class GameService:
         elif cmd == "RECENTER":
             self._fusion.recenter()
             log.info("paddle orientation recentered")
+        elif cmd == "SET_IMU_AXES" and value:
+            self._fusion.set_axes(value)
+            log.info("IMU axes set to %s", value)
         else:
             self._sm.request(cmd)
         # RESET always wipes; START_SESSION only when it was actually accepted —

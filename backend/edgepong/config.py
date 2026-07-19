@@ -46,12 +46,19 @@ class CameraConfig:
     # you can flip left/right or scale reach without touching code.
     mediapipe_enabled: bool = False
     mp_camera_index: int = 0
+    mp_mode: str = "hands"       # "hands" (finger skeleton + gesture) | "pose"
+                                 # (full body: arms/shoulders + real depth)
     mp_x_span: float = 1.4       # hand across frame -> ± this many metres in x
     mp_x_sign: float = 1.0       # set to -1 to mirror left/right
     mp_y_span: float = 1.0       # hand top→bottom -> this vertical range
     mp_y_base: float = 1.15      # paddle rest height (frame centre maps here)
-    mp_z_plane: float = 1.8      # fixed depth (the paddle plane) in 2D mode
+    mp_z_plane: float = 1.8      # depth when fixed (hands mode / retracted arm)
     mp_smoothing: float = 0.2    # 0=raw, →1=heavily smoothed EMA (low = snappy)
+    # pose mode only — reach depth from the wrist's 3D world-z
+    mp_pose_wrist: str = "right" # which wrist drives position ("right"/"left")
+    mp_depth_scale: float = 1.8  # world-z (m) -> game depth; negative to flip
+    mp_depth_min: float = 1.35
+    mp_depth_max: float = 2.05
 
 
 @dataclass
@@ -215,7 +222,11 @@ def _apply_env_overrides(cfg: Config) -> Config:
     cfg.fusion.imu_axes = as_str("EDGEPONG_IMU_AXES", cfg.fusion.imu_axes)
     cfg.camera.mediapipe_enabled = as_bool("EDGEPONG_MEDIAPIPE", cfg.camera.mediapipe_enabled)
     cfg.camera.mp_camera_index = as_int("EDGEPONG_MP_CAMERA", cfg.camera.mp_camera_index)
+    cfg.camera.mp_mode = as_str("EDGEPONG_MP_MODE", cfg.camera.mp_mode)
     cfg.camera.mp_x_sign = float(as_str("EDGEPONG_MP_X_SIGN", str(cfg.camera.mp_x_sign)))
+    cfg.camera.mp_depth_scale = float(
+        as_str("EDGEPONG_MP_DEPTH_SCALE", str(cfg.camera.mp_depth_scale))
+    )
     return cfg
 
 

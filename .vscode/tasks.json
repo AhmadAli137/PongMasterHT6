@@ -19,9 +19,17 @@
     },
     {
       "label": "Play with REAL paddle (IMU + webcam position): Build + Serve",
-      "detail": "Full 6-DOF: the IMU drives orientation and the webcam (MediaPipe hand tracking) drives position. Needs 'pip install mediapipe' and a webcam. Hold still ~2 s to zero the gyro; press C to recenter. If left/right is mirrored, set EDGEPONG_MP_X_SIGN=-1.",
+      "detail": "Full 6-DOF: the IMU drives orientation and the webcam (MediaPipe hand tracking) drives position. Needs 'pip install mediapipe' and a webcam. Hold still ~2 s to zero the gyro; press C to recenter. If left/right is mirrored, set EDGEPONG_MP_X_SIGN=-1. Tune orientation live with [ and ].",
       "dependsOrder": "sequence",
       "dependsOn": ["Frontend: Build", "IMU + webcam: Serve + open browser"],
+      "group": { "kind": "build" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Play with REAL paddle (IMU + full-body pose): Build + Serve",
+      "detail": "Like above but MediaPipe Pose: tracks arms/shoulders and adds real reach DEPTH from the wrist's 3D position. Reach toward the camera to push the paddle toward the table. Tune depth feel with EDGEPONG_MP_DEPTH_SCALE.",
+      "dependsOrder": "sequence",
+      "dependsOn": ["Frontend: Build", "IMU + pose: Serve + open browser"],
       "group": { "kind": "build" },
       "problemMatcher": []
     },
@@ -62,6 +70,12 @@
       "problemMatcher": []
     },
     {
+      "label": "IMU + pose: Serve + open browser",
+      "detail": "helper — runs hardware mode with MediaPipe full-body pose, then opens the browser",
+      "dependsOn": ["Backend: Run (IMU + full-body pose)", "Browser: Open when server is ready"],
+      "problemMatcher": []
+    },
+    {
       "label": "Mouse: Serve + open browser",
       "detail": "helper — runs the sim backend, then opens the browser",
       "dependsOn": ["Backend: Run (sim)", "Browser: Open when server is ready"],
@@ -98,6 +112,27 @@
           "EDGEPONG_COMMAND_HOST": "auto",
           "EDGEPONG_IMU_AXES": "-x,y,-z",
           "EDGEPONG_MEDIAPIPE": "1",
+          "EDGEPONG_MP_CAMERA": "0"
+        }
+      },
+      "isBackground": true,
+      "presentation": { "panel": "dedicated", "reveal": "always" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend: Run (IMU + full-body pose)",
+      "detail": "helper — hardware mode + MediaPipe Pose: IMU orientation, webcam arms/shoulders + reach depth for position.",
+      "type": "shell",
+      "command": "python",
+      "args": ["-m", "edgepong.main"],
+      "options": {
+        "cwd": "${workspaceFolder}/backend",
+        "env": {
+          "EDGEPONG_HARDWARE_MODE": "hardware",
+          "EDGEPONG_COMMAND_HOST": "auto",
+          "EDGEPONG_IMU_AXES": "-x,y,-z",
+          "EDGEPONG_MEDIAPIPE": "1",
+          "EDGEPONG_MP_MODE": "pose",
           "EDGEPONG_MP_CAMERA": "0"
         }
       },

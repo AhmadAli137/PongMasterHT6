@@ -37,6 +37,9 @@ export class App {
   private cameraWrap: HTMLDivElement | null = null;
   private cameraImg: HTMLImageElement | null = null;
   private cameraOn = false;
+  private axisSpecs: string[] = [];
+  private axisIdx = 0;
+  private axisOverlay: HTMLDivElement | null = null;
   // damped-follow targets: interpolator output is low-passed before display
   private targetPos = new THREE.Vector3(0, 1.2, 1.8);
   private targetQuat = new THREE.Quaternion();
@@ -93,8 +96,40 @@ export class App {
     this.cameraImg = img;
     fetch("/api/health")
       .then((r) => r.json())
-      .then((h) => { if (h.camera) this.toggleCamera(true); })
+      .then((h) => {
+        if (h.camera) this.toggleCamera(true);
+        if (h.mode === "hardware") this.setupAxisTuner();
+      })
       .catch(() => { /* offline; ignore */ });
+  }
+
+  /** Live IMU axis-remap tuner: cycle the 24 valid orientations with [ and ]
+   *  while watching the paddle, so pitch/yaw/roll can be made to match by eye. */
+  private setupAxisTuner(): void {
+    this.axisSpecs = properRotationSpecs();
+    const start = this.axisSpecs.indexOf("-x,y,-z");
+    this.axisIdx = start >= 0 ? start : 0;
+    const el = document.createElement("div");
+    el.style.cssText =
+      "position:fixed;top:92px;left:50%;transform:translateX(-50%);z-index:20;" +
+      "font:13px ui-monospace,monospace;color:#bfe;background:rgba(0,0,0,.55);" +
+      "padding:5px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.15)";
+    document.body.appendChild(el);
+    this.axisOverlay = el;
+    this.renderAxis();
+  }
+
+  private renderAxis(): void {
+    if (this.axisOverlay) {
+      this.axisOverlay.textContent = `IMU axes  ${this.axisSpecs[this.axisIdx]}   ·   [ / ] to tune`;
+    }
+  }
+
+  private cycleAxis(dir: number): void {
+    if (this.axisSpecs.length === 0) return;
+    this.axisIdx = (this.axisIdx + dir + this.axisSpecs.length) % this.axisSpecs.length;
+    this.net.send("SET_IMU_AXES", this.axisSpecs[this.axisIdx]);
+    this.renderAxis();
   }
 
   private toggleCamera(on?: boolean): void {
@@ -140,6 +175,9 @@ export class App {
       if (e.key === "c" || e.key === "C") this.net.send("RECENTER");
       // V = show/hide the webcam hand-tracking preview
       if (e.key === "v" || e.key === "V") this.toggleCamera();
+      // [ / ] = live-tune the IMU axis remap until pitch/yaw/roll look right
+      if (e.key === "[") this.cycleAxis(-1);
+      if (e.key === "]") this.cycleAxis(1);
     });
 
     // -- mouse paddle control (sim mode) --------------------------------- //
@@ -278,4 +316,23 @@ export class App {
 
     this.renderer.render(this.scene, this.camera);
   }
+}
+
+/** The 24 signed axis permutations that are proper rotations (det = +1) — the
+ *  physically-possible IMU mountings. Format matches the backend imu_axes spec:
+ *  each entry is which sensor axis (±) feeds game x, y, z. */
+function properRotationSpecs(): string[] {
+  const axes = ["x", "y", "z"];
+  const perms = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]];
+  const permSign = (p: number[]) =>
+    Math.sign((p[1] - p[0]) * (p[2] - p[0]) * (p[2] - p[1])); // parity of the perm
+  const specs: string[] = [];
+  for (const p of perms) {
+    for (let s = 0; s < 8; s++) {
+      const sg = [s & 1 ? -1 : 1, s & 2 ? -1 : 1, s & 4 ? -1 : 1];
+      if (permSign(p) * sg[0] * sg[1] * sg[2] !== 1) continue; // keep det +1
+      specs.push(p.map((col, i) => (sg[i] < 0 ? "-" : "") + axes[col]).join(","));
+    }
+  }
+  return specs;
 }

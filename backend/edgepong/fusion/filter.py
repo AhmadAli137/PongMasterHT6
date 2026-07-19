@@ -179,6 +179,12 @@ class PoseFusion:
         """Tell the filter a real position source is live (MediaPipe/AprilTag)."""
         self._camera_active = active
 
+    def set_axes(self, spec: str) -> str:
+        """Live-swap the IMU axis remap (see FusionConfig.imu_axes). Returns the
+        spec actually applied (identity if the string was invalid)."""
+        self._axis_P, self._axis_det = _parse_axis_remap(spec)
+        return spec
+
     # ------------------------------------------------------------------ #
     def step(self, now: int | None = None) -> PaddlePose:
         now = now if now is not None else now_us()

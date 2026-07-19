@@ -23,7 +23,7 @@ from ..types import ImpactEvent
 
 log = get_logger("web")
 
-_ALLOWED_COMMANDS = {"START_SESSION", "CALIBRATE", "SET_DIFFICULTY", "RESET", "BALANCE_MODE", "PAUSE", "RECENTER"}
+_ALLOWED_COMMANDS = {"START_SESSION", "CALIBRATE", "SET_DIFFICULTY", "RESET", "BALANCE_MODE", "PAUSE", "RECENTER", "SET_IMU_AXES"}
 
 
 def _sanitize(value: object, default: float | None = None, limit: float = 4.0) -> float | None:

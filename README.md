@@ -4,6 +4,15 @@ Swing a real paddle at virtual balls — and feel every hit.
 
 Weekend hackathon build, in progress.
 
+## How it plays
+
+Balls come at you off the wall. Swing the real paddle to meet them — the game
+watches the ball's whole path between frames, not just snapshots, so even a
+fast one can't slip through the paddle.
+
+Connect, and the ball rebounds off the angle of your paddle: tilt the face to
+aim your return. Land it on the far side to score. Miss, and the rally's over.
+
 ## The fun math: quaternions
 
 The paddle can point any direction in 3D, so we track its orientation with

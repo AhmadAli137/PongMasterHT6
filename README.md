@@ -13,6 +13,18 @@ fast one can't slip through the paddle.
 Connect, and the ball rebounds off the angle of your paddle: tilt the face to
 aim your return. Land it on the far side to score. Miss, and the rally's over.
 
+## Controls (mouse mode)
+
+No paddle yet? Play with the mouse — it drives a stand-in paddle through the
+exact same game:
+
+- **Move** the mouse to move the paddle
+- **Swing fast** through a ball to hit harder — power comes from how quickly
+  your hand is moving, not from holding a button
+- **Scroll wheel** tilts the face to aim your return
+- **Right-click** flips forehand / backhand
+- **Space** start · **B** balance mode · **Esc** pause
+
 ## No hardware? No problem 🖱️
 
 Every physical piece has a simulated stand-in, so the whole game runs on a

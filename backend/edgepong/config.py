@@ -72,6 +72,9 @@ class FusionConfig:
     imu_orientation_weight: float = 0.80
     max_angular_prediction_ms: float = 45.0
     output_rate_hz: int = 240
+    # No camera wired? Let the paddle's IMU drive orientation directly and hold
+    # a steady "tracked" state, so real paddle rotation shows up on screen.
+    imu_only: bool = False
 
 
 @dataclass
@@ -188,6 +191,11 @@ def _apply_env_overrides(cfg: Config) -> Config:
     cfg.renderer.http_port = as_int("EDGEPONG_HTTP_PORT", cfg.renderer.http_port)
     cfg.system.hardware_mode = as_str("EDGEPONG_HARDWARE_MODE", cfg.system.hardware_mode)
     cfg.system.log_level = as_str("EDGEPONG_LOG_LEVEL", cfg.system.log_level)
+    # With no camera (hardware mode) the paddle's IMU is the only pose source, so
+    # let it drive orientation directly. Override explicitly if ever needed.
+    cfg.fusion.imu_only = as_bool(
+        "EDGEPONG_IMU_ONLY", cfg.system.hardware_mode == "hardware"
+    )
     return cfg
 
 

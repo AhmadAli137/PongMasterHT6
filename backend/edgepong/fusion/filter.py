@@ -46,6 +46,7 @@ class PoseFusion:
     def __init__(self, fusion_cfg: FusionConfig, paddle_cfg: PaddleConfig):
         self._f = fusion_cfg
         self._p = paddle_cfg
+        self._imu_only = fusion_cfg.imu_only
         self._position = vec3(0.0, 1.2, 1.8)
         self._orientation = quat_normalize(np.array([1.0, 0.0, 0.0, 0.0]))
         self._imu_orientation = self._orientation.copy()
@@ -111,7 +112,18 @@ class PoseFusion:
         )
         self._imu_orientation = q
         self._angular_velocity = vec3(tel.gyro_x, tel.gyro_y, tel.gyro_z)
-        self._last_imu_us = now_us()
+        now = now_us()
+        self._last_imu_us = now
+
+        if self._imu_only:
+            # No camera to correct against: the IMU IS the tracker. Take its
+            # orientation directly (responsive) and hold a steady tracked state
+            # so gameplay runs. Position stays at the fixed home point.
+            self._orientation = q
+            self._last_camera_us = now
+            self._confidence = 0.9
+            return
+
         # IMU provides fast orientation; camera corrects it in on_camera().
         w = self._f.imu_orientation_weight
         self._orientation = quat_slerp(self._orientation, q, w * 0.15)

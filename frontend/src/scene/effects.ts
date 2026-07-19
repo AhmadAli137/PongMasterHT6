@@ -9,9 +9,36 @@ interface Burst {
   ttl: number;
 }
 
+interface Ripple {
+  mesh: THREE.Mesh;
+  life: number;
+  ttl: number;
+  maxScale: number;
+}
+
 export class Effects {
   private bursts: Burst[] = [];
+  private ripples: Ripple[] = [];
   constructor(private scene: THREE.Scene) {}
+
+  /** Expanding ring at the contact point that grows and fades out — a little
+   *  shockwave marking exactly where the ball met the paddle. */
+  ring(pos: [number, number, number], color: number, strength: number): void {
+    const geo = new THREE.RingGeometry(0.72, 1.0, 40);
+    const mat = new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.95,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(pos[0], pos[1], pos[2]);
+    mesh.scale.setScalar(0.02);
+    this.scene.add(mesh);
+    this.ripples.push({ mesh, life: 0, ttl: 0.45, maxScale: 0.16 + strength * 0.22 });
+  }
 
   spawn(pos: [number, number, number], color: number, strength: number): void {
     const count = Math.floor(20 + strength * 60);
@@ -55,6 +82,21 @@ export class Effects {
       if (burst.life >= burst.ttl) {
         this.scene.remove(burst.points);
         this.bursts.splice(b, 1);
+      }
+    }
+
+    for (let r = this.ripples.length - 1; r >= 0; r--) {
+      const rp = this.ripples[r];
+      rp.life += dt;
+      const t = rp.life / rp.ttl; // 0..1
+      const eased = 1 - (1 - t) * (1 - t); // ease-out expansion
+      rp.mesh.scale.setScalar(0.02 + eased * rp.maxScale);
+      (rp.mesh.material as THREE.MeshBasicMaterial).opacity = Math.max(0, 0.95 * (1 - t));
+      if (rp.life >= rp.ttl) {
+        this.scene.remove(rp.mesh);
+        (rp.mesh.material as THREE.Material).dispose();
+        rp.mesh.geometry.dispose();
+        this.ripples.splice(r, 1);
       }
     }
   }

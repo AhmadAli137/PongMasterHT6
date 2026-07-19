@@ -4,11 +4,11 @@
 // Blue rubber (tournament-legal since 2021) so it reads instantly as "not you".
 
 import * as THREE from "three";
+import { buildBlade } from "./blade";
 import type { BallMsg, ServeMsg } from "../types";
 
 const RUBBER_BLUE = 0x2b66cc;
 const RUBBER_BLACK = 0x17171b;
-const WOOD = 0xb9895a;
 
 export class OpponentView {
   readonly group = new THREE.Group();
@@ -19,31 +19,10 @@ export class OpponentView {
   private lastSwingCount = -1;
   private phase = 0;
 
-  constructor(bladeRadius = 0.09) {
-    const r = bladeRadius;
-    const woodMat = new THREE.MeshStandardMaterial({ color: WOOD, roughness: 0.65 });
-    const blueMat = new THREE.MeshStandardMaterial({ color: RUBBER_BLUE, roughness: 0.85 });
-    const blackMat = new THREE.MeshStandardMaterial({ color: RUBBER_BLACK, roughness: 0.9 });
-
-    const core = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.006, 40), woodMat);
-    core.rotation.x = Math.PI / 2;
-    // blue face toward the player (+Z world from the far side)
-    const front = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.985, r * 0.985, 0.0038, 40), blueMat);
-    front.rotation.x = Math.PI / 2;
-    front.position.z = 0.0049;
-    const back = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.985, r * 0.985, 0.0038, 40), blackMat);
-    back.rotation.x = Math.PI / 2;
-    back.position.z = -0.0049;
-    const tape = new THREE.Mesh(
-      new THREE.TorusGeometry(r, 0.0042, 8, 40),
-      new THREE.MeshStandardMaterial({ color: 0xf0ede6, roughness: 0.7 }),
-    );
-    const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.095, 0.02), woodMat);
-    shaft.position.y = -r - 0.04;
-    for (const m of [core, front, back, tape, shaft]) {
-      if (m instanceof THREE.Mesh) m.castShadow = true;
-      this.blade.add(m);
-    }
+  constructor() {
+    // blue rubber faces the player (+Z), black toward the far wall
+    const { group } = buildBlade(RUBBER_BLUE, RUBBER_BLACK, 0.09);
+    this.blade.add(group);
     this.group.add(this.blade);
     this.group.position.copy(this.home);
   }

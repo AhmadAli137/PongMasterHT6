@@ -169,7 +169,10 @@ export class App {
 
   private onImpact(i: ImpactMsg): void {
     const color = TYPE_COLOR[i.ballType] ?? 0xffffff;
+    // cyan shockwave ring for a perfect hit, otherwise the ball's colour
+    const ringColor = i.quality === "PERFECT" ? 0x00e0ff : color;
     this.effects.spawn(i.position, color, i.strength);
+    this.effects.ring(i.position, ringColor, i.strength);
     this.paddle.flashQuadrant(i.localX, i.localY, Math.max(0.4, i.strength));
     this.hud.onImpact(i);
     if (i.ballType === "AVOID") this.audio.miss();

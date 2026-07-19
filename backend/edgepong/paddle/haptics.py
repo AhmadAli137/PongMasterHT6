@@ -69,14 +69,20 @@ def build_haptic_command(
     strength = clamp(impact.strength, 0.0, 1.0)
     if impact.quality is HitQuality.PERFECT:
         strength = clamp(strength * cfg.perfect_multiplier, 0.0, 1.0)
+    # Demo feel: every clean hit should land solid. Gentle mouse/autoplay
+    # contacts carry low raw strength, so floor it and let the swing shape the
+    # pulse above that floor rather than fading to nothing.
+    strength = clamp(0.55 + 0.45 * strength, 0.0, 1.0)
 
     span = cfg.max_intensity - cfg.min_intensity
 
     def scale(weight: float) -> float:
-        raw = weight * strength * global_gain
-        if raw <= 0.02:  # below-threshold neighbours stay silent (spec §17.1)
-            return 0.0
-        return cfg.min_intensity + span * clamp(raw, 0.0, 1.0)
+        # weight*4 makes a centred hit (0.25 in each quadrant) read as full;
+        # the struck corner is emphasised while the floor keeps every quadrant
+        # clearly felt instead of going silent.
+        emphasis = clamp(weight * 4.0, 0.45, 1.0)
+        val = cfg.min_intensity + span * strength * emphasis * global_gain
+        return clamp(val, 0.0, cfg.max_intensity)
 
     scaled = QuadrantIntensities(
         q0=scale(weights.q0), q1=scale(weights.q1),

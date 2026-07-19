@@ -82,10 +82,10 @@ class GameConfig:
     paddle_width_m: float = 0.19
     paddle_height_m: float = 0.19
     paddle_thickness_m: float = 0.015
-    collision_scale_easy: float = 1.30
+    collision_scale_easy: float = 1.55
     collision_scale_normal: float = 1.18
     collision_scale_hard: float = 1.05
-    hit_grace_ms: int = 28
+    hit_grace_ms: int = 42
     min_swing_speed_rad_s: float = 0.8
     max_ball_count: int = 3
     difficulty: str = "EASY"
@@ -106,7 +106,7 @@ class GameConfig:
 class HapticsConfig:
     # 0.30 -> ~21% duty floor, just above measured coin-ERM stiction (~18-20%)
     min_intensity: float = 0.30
-    max_intensity: float = 0.88
+    max_intensity: float = 1.0
     min_duration_ms: int = 22
     max_duration_ms: int = 65
     perfect_multiplier: float = 1.15

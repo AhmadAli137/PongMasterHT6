@@ -52,10 +52,10 @@ game:
   paddle_width_m: 0.19
   paddle_height_m: 0.19
   paddle_thickness_m: 0.015
-  collision_scale_easy: 1.30
+  collision_scale_easy: 1.55
   collision_scale_normal: 1.18
   collision_scale_hard: 1.05
-  hit_grace_ms: 28
+  hit_grace_ms: 42
   min_swing_speed_rad_s: 0.8
   max_ball_count: 3
   difficulty: EASY
@@ -69,7 +69,7 @@ haptics:
   # just above the measured coin-ERM stiction point (~18-20% duty). Below this
   # a light tap wouldn't overcome static friction and wouldn't be felt.
   min_intensity: 0.30
-  max_intensity: 0.88
+  max_intensity: 1.0
   min_duration_ms: 22
   max_duration_ms: 65
   perfect_multiplier: 1.15

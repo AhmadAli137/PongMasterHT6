@@ -29,6 +29,20 @@
       "problemMatcher": []
     },
     {
+      "label": "Play with REAL paddle (IMU): Build + Serve",
+      "detail": "Everything for hardware mode: build the frontend, run the backend so the real paddle's MPU6050 drives the on-screen paddle, route haptics to it, and open the browser. Hold the paddle still ~2 s at start to zero the gyro; press C in the browser to recenter 'flat'.",
+      "dependsOrder": "sequence",
+      "dependsOn": ["Frontend: Build", "Play with REAL paddle (IMU): Serve + open browser"],
+      "group": { "kind": "build" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Play with REAL paddle (IMU): Serve + open browser",
+      "detail": "Runs the backend in hardware mode (IMU drives orientation), then opens the browser",
+      "dependsOn": ["Backend: Run (real paddle IMU)", "Browser: Open when server is ready"],
+      "problemMatcher": []
+    },
+    {
       "label": "Browser: Open when server is ready",
       "detail": "Waits for http://localhost:8080 to come up (max 30 s), then opens it",
       "type": "shell",
@@ -62,6 +76,23 @@
         "cwd": "${workspaceFolder}/backend",
         "env": {
           "EDGEPONG_SIM_PADDLE": "0",
+          "EDGEPONG_COMMAND_HOST": "auto"
+        }
+      },
+      "isBackground": true,
+      "presentation": { "panel": "dedicated", "reveal": "always" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend: Run (real paddle IMU)",
+      "detail": "Hardware mode: no mock camera/paddle. The real paddle's IMU drives orientation (position fixed), haptics auto-route back to it. Watch the log for 'POSE SOURCE: real paddle IMU'.",
+      "type": "shell",
+      "command": "python",
+      "args": ["-m", "edgepong.main"],
+      "options": {
+        "cwd": "${workspaceFolder}/backend",
+        "env": {
+          "EDGEPONG_HARDWARE_MODE": "hardware",
           "EDGEPONG_COMMAND_HOST": "auto"
         }
       },

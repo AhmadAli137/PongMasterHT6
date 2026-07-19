@@ -33,7 +33,13 @@
 #include "esp_log.h"
 #include "esp_system.h"
 
+#include "wifi_link.h"
+
 static const char *TAG = "haptic-bench";
+
+/* Connect Wi-Fi to hold current draw up so the DAOKI boost stays awake.
+ * Set to 0 if bench-testing on USB power (no battery / boost involved). */
+#define KEEP_ALIVE_WIFI 1
 
 /* ---- adjust to your wiring. All four are clear of ESP32-C5 reserved
  * functions: strapping (2/7/25/27/28), SPI flash/PSRAM (16-22), USB-JTAG
@@ -238,6 +244,18 @@ void app_main(void)
         ESP_ERROR_CHECK(ledc_channel_config(&ch_cfg));
     }
     all_off();
+
+    /* Bring Wi-Fi up FIRST (with PS_NONE) so the DAOKI boost stays awake for
+     * the whole session. Generous timeout, then continue regardless — if it
+     * can't connect (or you're on USB), the bench still runs; you just lose the
+     * keep-alive. Motors stayed off during all of this. */
+#if KEEP_ALIVE_WIFI
+    if (wifi_link_connect(30000) == ESP_OK) {
+        ESP_LOGI(TAG, "wifi up (rssi %d dBm) - DAOKI keep-alive active", wifi_link_rssi());
+    } else {
+        ESP_LOGW(TAG, "wifi did NOT connect - on a boost supply the board may auto-shut-off");
+    }
+#endif
 
     ESP_LOGI(TAG, "haptic bench ready: %d quadrant(s), %d Hz PWM, duty clamp %d %%",
              SINGLE_QUADRANT_ONLY ? 1 : NUM_QUADRANTS, PWM_FREQ_HZ, MAX_DUTY_PCT);

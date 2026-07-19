@@ -400,14 +400,18 @@ class GameService:
             self._kill_ball(ball)
             return
 
-        # autoplay serves itself: swing when its own toss falls to paddle height
+        # auto-serve: when a toss falls back to paddle height, strike it. This
+        # fires for the AI's own serve AND the player's — serving from the
+        # down-the-table camera is fiddly, so as long as the paddle is roughly
+        # under the toss it serves itself (position + click to toss is enough;
+        # a manual swing still works and takes over if you're quick).
         if (
             untouched_toss
             and self._sim_model is not None
-            and not self._sim_model.external_active
             and not self._sim_model.striking
-            and ball.velocity[1] < -0.5
-            and abs(float(ball.position[1]) - float(pose.position_m[1])) < 0.10
+            and ball.velocity[1] < -0.3
+            and abs(float(ball.position[1]) - float(pose.position_m[1])) < 0.16
+            and abs(float(ball.position[0]) - float(pose.position_m[0])) < 0.32
         ):
             self._sim_model.ai_strike(0.75)
 

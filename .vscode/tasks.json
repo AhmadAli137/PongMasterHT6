@@ -2,90 +2,50 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Play: Build + Serve (all-in-one)",
-      "detail": "Builds the frontend, serves the game on http://localhost:8080, and opens the browser",
+      "label": "Play with REAL paddle (IMU): Build + Serve",
+      "detail": "Hardware mode: build the UI, run the backend so the paddle's MPU6050 drives the on-screen paddle, route haptics to it, and open the browser. Hold the paddle still ~2 s at start to zero the gyro; press C in the browser to recenter 'flat'.",
       "dependsOrder": "sequence",
-      "dependsOn": ["Frontend: Build", "Play: Serve + open browser"],
+      "dependsOn": ["Frontend: Build", "REAL paddle: Serve + open browser"],
       "group": { "kind": "build", "isDefault": true },
       "problemMatcher": []
     },
     {
-      "label": "Play: Serve + open browser",
-      "detail": "Runs the backend and pops the browser once the server answers",
-      "dependsOn": ["Backend: Run (sim)", "Browser: Open when server is ready"],
-      "problemMatcher": []
-    },
-    {
-      "label": "Play with paddle: Build + Serve",
-      "detail": "Like Play, but routes every hit's haptics to the real ESP32 paddle (auto-learns its IP from telemetry)",
+      "label": "Play (mouse, no hardware): Build + Serve",
+      "detail": "Build the UI, run the sim backend, and open the browser. Drive the paddle with the mouse — good fallback when the paddle isn't connected.",
       "dependsOrder": "sequence",
-      "dependsOn": ["Frontend: Build", "Play with paddle: Serve + open browser"],
-      "problemMatcher": []
-    },
-    {
-      "label": "Play with paddle: Serve + open browser",
-      "detail": "Runs the backend aimed at the real paddle, then opens the browser",
-      "dependsOn": ["Backend: Run (paddle haptics)", "Browser: Open when server is ready"],
-      "problemMatcher": []
-    },
-    {
-      "label": "Play with REAL paddle (IMU): Build + Serve",
-      "detail": "Everything for hardware mode: build the frontend, run the backend so the real paddle's MPU6050 drives the on-screen paddle, route haptics to it, and open the browser. Hold the paddle still ~2 s at start to zero the gyro; press C in the browser to recenter 'flat'.",
-      "dependsOrder": "sequence",
-      "dependsOn": ["Frontend: Build", "Play with REAL paddle (IMU): Serve + open browser"],
+      "dependsOn": ["Frontend: Build", "Mouse: Serve + open browser"],
       "group": { "kind": "build" },
       "problemMatcher": []
     },
     {
-      "label": "Play with REAL paddle (IMU): Serve + open browser",
-      "detail": "Runs the backend in hardware mode (IMU drives orientation), then opens the browser",
-      "dependsOn": ["Backend: Run (real paddle IMU)", "Browser: Open when server is ready"],
-      "problemMatcher": []
-    },
-    {
-      "label": "Browser: Open when server is ready",
-      "detail": "Waits for http://localhost:8080 to come up (max 30 s), then opens it",
+      "label": "Fix: Kill stale backend (frees UDP 46000 / HTTP 8080)",
+      "detail": "Run this if a launch fails to bind, or metrics show paddleConnected=false after a restart",
       "type": "shell",
       "command": "powershell",
       "args": [
         "-NoProfile",
         "-Command",
-        "$deadline = (Get-Date).AddSeconds(30); $up = $false; while ((Get-Date) -lt $deadline) { try { Invoke-WebRequest -UseBasicParsing -TimeoutSec 1 http://127.0.0.1:8080/api/health | Out-Null; $up = $true; break } catch { Start-Sleep -Milliseconds 500 } }; if ($up) { Write-Host 'Server up - opening browser'; Start-Process 'http://127.0.0.1:8080' } else { Write-Host 'Server did not come up within 30 s - not opening browser' }"
+        "$pids = @(); try { $pids += (Get-NetUDPEndpoint -LocalPort 46000 -ErrorAction Stop).OwningProcess } catch {}; try { $pids += (Get-NetTCPConnection -LocalPort 8080 -State Listen -ErrorAction Stop).OwningProcess } catch {}; $pids = $pids | Sort-Object -Unique | Where-Object { $_ -gt 0 }; if ($pids) { $pids | ForEach-Object { Write-Host \"Killing PID $_\"; Stop-Process -Id $_ -Force } } else { Write-Host 'Nothing holding 46000/8080 — all clear.' }"
       ],
-      "presentation": { "panel": "shared", "reveal": "silent" },
+      "presentation": { "panel": "shared", "clear": true },
+      "problemMatcher": []
+    },
+
+    {
+      "label": "REAL paddle: Serve + open browser",
+      "detail": "helper — runs the hardware-mode backend, then opens the browser",
+      "dependsOn": ["Backend: Run (real paddle IMU)", "Browser: Open when server is ready"],
       "problemMatcher": []
     },
     {
-      "label": "Backend: Run (sim)",
-      "detail": "Start the authoritative game backend with mock camera + paddle on :8080",
-      "type": "shell",
-      "command": "python",
-      "args": ["-m", "edgepong.main"],
-      "options": { "cwd": "${workspaceFolder}/backend" },
-      "isBackground": true,
-      "presentation": { "panel": "dedicated", "reveal": "always" },
-      "problemMatcher": []
-    },
-    {
-      "label": "Backend: Run (paddle haptics)",
-      "detail": "Backend aimed at the real ESP32 paddle: mock paddle off, haptics auto-routed to whichever paddle is streaming telemetry",
-      "type": "shell",
-      "command": "python",
-      "args": ["-m", "edgepong.main"],
-      "options": {
-        "cwd": "${workspaceFolder}/backend",
-        "env": {
-          "EDGEPONG_SIM_PADDLE": "0",
-          "EDGEPONG_COMMAND_HOST": "auto"
-        }
-      },
-      "isBackground": true,
-      "presentation": { "panel": "dedicated", "reveal": "always" },
+      "label": "Mouse: Serve + open browser",
+      "detail": "helper — runs the sim backend, then opens the browser",
+      "dependsOn": ["Backend: Run (sim)", "Browser: Open when server is ready"],
       "problemMatcher": []
     },
     {
       "label": "Backend: Run (real paddle IMU)",
-      "detail": "Hardware mode: no mock camera/paddle. The real paddle's IMU drives orientation (position fixed), haptics auto-route back to it. Watch the log for 'POSE SOURCE: real paddle IMU'.",
+      "detail": "helper — hardware mode: the real paddle's IMU drives orientation (position fixed), haptics auto-route back to it. Look for 'POSE SOURCE: real paddle IMU' in the log.",
       "type": "shell",
       "command": "python",
       "args": ["-m", "edgepong.main"],
@@ -101,64 +61,37 @@
       "problemMatcher": []
     },
     {
-      "label": "Frontend: Build",
-      "detail": "Typecheck + Vite production build into frontend/dist (served by the backend)",
+      "label": "Backend: Run (sim)",
+      "detail": "helper — game backend with mock camera + paddle on :8080 (mouse control)",
       "type": "shell",
-      "command": "npm",
-      "args": ["run", "build"],
-      "options": { "cwd": "${workspaceFolder}/frontend" },
-      "problemMatcher": ["$tsc"]
-    },
-    {
-      "label": "Frontend: Dev server (hot reload)",
-      "detail": "Vite dev server on :5173, proxying /api and /ws to the backend on :8080",
-      "type": "shell",
-      "command": "npm",
-      "args": ["run", "dev"],
-      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "command": "python",
+      "args": ["-m", "edgepong.main"],
+      "options": { "cwd": "${workspaceFolder}/backend" },
       "isBackground": true,
       "presentation": { "panel": "dedicated", "reveal": "always" },
       "problemMatcher": []
     },
     {
-      "label": "Dev: Backend + Frontend (hot reload)",
-      "detail": "Run both servers for development — open http://localhost:5173",
-      "dependsOn": ["Backend: Run (sim)", "Frontend: Dev server (hot reload)"],
-      "problemMatcher": []
-    },
-    {
-      "label": "Backend: Tests",
-      "detail": "Run the full pytest suite (44 tests)",
-      "type": "shell",
-      "command": "python",
-      "args": ["-m", "pytest", "-q"],
-      "options": { "cwd": "${workspaceFolder}/backend" },
-      "group": { "kind": "test", "isDefault": true },
-      "presentation": { "panel": "shared", "clear": true },
-      "problemMatcher": []
-    },
-    {
-      "label": "Backend: Headless demo",
-      "detail": "Full pipeline session in ~10 s with no browser; prints impacts + metrics",
-      "type": "shell",
-      "command": "python",
-      "args": ["scripts/headless_demo.py"],
-      "options": { "cwd": "${workspaceFolder}/backend" },
-      "presentation": { "panel": "shared", "clear": true },
-      "problemMatcher": []
-    },
-    {
-      "label": "Fix: Kill stale backend (frees UDP 46000 / HTTP 8080)",
-      "detail": "Use when metrics show paddleConnected=false after a restart",
+      "label": "Browser: Open when server is ready",
+      "detail": "helper — waits for http://localhost:8080 (max 30 s), then opens it",
       "type": "shell",
       "command": "powershell",
       "args": [
         "-NoProfile",
         "-Command",
-        "$pids = @(); try { $pids += (Get-NetUDPEndpoint -LocalPort 46000 -ErrorAction Stop).OwningProcess } catch {}; try { $pids += (Get-NetTCPConnection -LocalPort 8080 -State Listen -ErrorAction Stop).OwningProcess } catch {}; $pids = $pids | Sort-Object -Unique | Where-Object { $_ -gt 0 }; if ($pids) { $pids | ForEach-Object { Write-Host \"Killing PID $_\"; Stop-Process -Id $_ -Force } } else { Write-Host 'Nothing holding 46000/8080 — all clear.' }"
+        "$deadline = (Get-Date).AddSeconds(30); $up = $false; while ((Get-Date) -lt $deadline) { try { Invoke-WebRequest -UseBasicParsing -TimeoutSec 1 http://127.0.0.1:8080/api/health | Out-Null; $up = $true; break } catch { Start-Sleep -Milliseconds 500 } }; if ($up) { Write-Host 'Server up - opening browser'; Start-Process 'http://127.0.0.1:8080' } else { Write-Host 'Server did not come up within 30 s - not opening browser' }"
       ],
-      "presentation": { "panel": "shared", "clear": true },
+      "presentation": { "panel": "shared", "reveal": "silent" },
       "problemMatcher": []
+    },
+    {
+      "label": "Frontend: Build",
+      "detail": "helper — typecheck + Vite production build into frontend/dist (served by the backend)",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "build"],
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "problemMatcher": ["$tsc"]
     }
   ]
 }

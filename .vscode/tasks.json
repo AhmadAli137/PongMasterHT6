@@ -16,6 +16,19 @@
       "problemMatcher": []
     },
     {
+      "label": "Play with paddle: Build + Serve",
+      "detail": "Like Play, but routes every hit's haptics to the real ESP32 paddle (auto-learns its IP from telemetry)",
+      "dependsOrder": "sequence",
+      "dependsOn": ["Frontend: Build", "Play with paddle: Serve + open browser"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Play with paddle: Serve + open browser",
+      "detail": "Runs the backend aimed at the real paddle, then opens the browser",
+      "dependsOn": ["Backend: Run (paddle haptics)", "Browser: Open when server is ready"],
+      "problemMatcher": []
+    },
+    {
       "label": "Browser: Open when server is ready",
       "detail": "Waits for http://localhost:8080 to come up (max 30 s), then opens it",
       "type": "shell",
@@ -35,6 +48,23 @@
       "command": "python",
       "args": ["-m", "edgepong.main"],
       "options": { "cwd": "${workspaceFolder}/backend" },
+      "isBackground": true,
+      "presentation": { "panel": "dedicated", "reveal": "always" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend: Run (paddle haptics)",
+      "detail": "Backend aimed at the real ESP32 paddle: mock paddle off, haptics auto-routed to whichever paddle is streaming telemetry",
+      "type": "shell",
+      "command": "python",
+      "args": ["-m", "edgepong.main"],
+      "options": {
+        "cwd": "${workspaceFolder}/backend",
+        "env": {
+          "EDGEPONG_SIM_PADDLE": "0",
+          "EDGEPONG_COMMAND_HOST": "auto"
+        }
+      },
       "isBackground": true,
       "presentation": { "panel": "dedicated", "reveal": "always" },
       "problemMatcher": []

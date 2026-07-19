@@ -1,0 +1,14 @@
+# Board: Waveshare ESP32-C5-WiFi6-Kit-N16R4 (16 MB flash).
+# The two board gotchas below were learned the hard way in the SketchBot
+# project (SketchBot_clubHacks26/firmware/sdkconfig.defaults) — keep them.
+
+CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+
+# PSRAM stays OFF: the module has 8 MB PSRAM but enabling CONFIG_SPIRAM on
+# rev-v1.0 C5 silicon corrupts the console VFS (first printf flush faults in
+# esp_vfs_write). We don't need PSRAM for the paddle anyway.
+# CONFIG_SPIRAM is intentionally not set.
+
+# Generous main stack: LEDC + Wi-Fi bring-up on the main task overflowed the
+# ~3.5 KB default on this board in the SketchBot project.
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192

@@ -9,8 +9,8 @@ static const char *TAG = "haptics";
 /* Same pin map as bench_espidf — Q0 TL, Q1 TR, Q2 BL, Q3 BR.
  * All four are clear of the ESP32-C5 reserved functions: strapping pins
  * (2/7/25/27/28), SPI flash/PSRAM (16-22), USB-JTAG (13/14), console UART
- * (11/12), and the planned IMU I2C (1/3). GPIO7 was deliberately dropped —
- * it's a strapping pin, and a gate pulldown on it would disrupt boot. */
+ * (11/12), and the IMU I2C bus (SDA 10 / SCL 26). GPIO7 was deliberately
+ * dropped — it's a strapping pin, and a gate pulldown would disrupt boot. */
 #define NUM_QUADRANTS 4
 static const int QUAD_GPIO[NUM_QUADRANTS] = { 4, 5, 23, 24 };
 

@@ -25,6 +25,7 @@
 #include "esp_timer.h"
 
 #include "haptics.h"
+#include "imu.h"
 #include "packets.h"
 #include "secrets.h"
 #include "wifi_link.h"
@@ -50,16 +51,29 @@ static void telemetry_task(void *arg)
     dest.sin_addr.s_addr = inet_addr(BACKEND_HOST);
 
     paddle_telemetry_t t = { 0 };
-    t.quat_w = 1.0f; /* identity orientation until the IMU is wired (M2) */
+    t.quat_w = 1.0f; /* identity until the first IMU sample lands */
     t.accel_y = 9.81f;
     t.battery_mv = 3900;
-    t.status_bits = STATUS_WIFI_CONNECTED; /* no IMU yet -> not IMU_CALIBRATED */
 
     uint32_t seq = 0;
     TickType_t last_wake = xTaskGetTickCount();
     while (1) {
         vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(1000 / TELEMETRY_HZ));
         if (!wifi_link_up()) continue;
+
+        /* pull the latest fused orientation from the IMU task */
+        uint8_t status = STATUS_WIFI_CONNECTED;
+        imu_sample_t s;
+        if (imu_get(&s)) {
+            t.quat_w = s.quat_w; t.quat_x = s.quat_x;
+            t.quat_y = s.quat_y; t.quat_z = s.quat_z;
+            t.gyro_x = s.gyro_x; t.gyro_y = s.gyro_y; t.gyro_z = s.gyro_z;
+            t.accel_x = s.accel_x; t.accel_y = s.accel_y; t.accel_z = s.accel_z;
+            if (s.calibrated) status |= STATUS_IMU_CALIBRATED;
+        } else {
+            status |= STATUS_SENSOR_FAULT; /* no IMU -> identity, link still alive */
+        }
+        t.status_bits = status;
 
         t.sequence = seq++;
         t.paddle_time_us = (uint64_t)esp_timer_get_time();
@@ -151,6 +165,15 @@ static void haptic_rx_task(void *arg)
 void app_main(void)
 {
     ESP_ERROR_CHECK(haptics_init()); /* motors pinned OFF before anything else */
+
+    /* IMU is optional: if it doesn't answer we still run (identity orientation,
+     * SENSOR_FAULT flagged) so the Wi-Fi + haptic path keeps working. */
+    if (imu_init() == ESP_OK) {
+        imu_task_start();
+        ESP_LOGI(TAG, "imu online - hold the paddle still for ~2 s to zero the gyro");
+    } else {
+        ESP_LOGW(TAG, "imu not found - sending identity orientation");
+    }
 
     ESP_ERROR_CHECK(wifi_link_connect(UINT32_MAX));
     ESP_LOGI(TAG, "wifi up - starting telemetry (%d Hz) and haptic rx", TELEMETRY_HZ);
